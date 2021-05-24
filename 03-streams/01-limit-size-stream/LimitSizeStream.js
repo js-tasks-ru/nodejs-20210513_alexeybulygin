@@ -16,7 +16,7 @@ class LimitSizeStream extends stream.Transform {
 
     if ((this.readed + chunkLength) > this.limit) {
       const error = new LimitExceededError()
-      callback(error, chunk)
+      callback(error)
       return
     }
 
