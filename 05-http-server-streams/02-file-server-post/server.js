@@ -20,21 +20,25 @@ server.on('request', (req, res) => {
       }
 
       const limitSize = new LimitSizeStream({limit: 1048576})
-      const writeStream = fs.createWriteStream(filepath, {flags: 'ax'})
+      const writeStream = fs.createWriteStream(filepath, {flags: 'wx'})
 
       req
         .pipe(limitSize)
-        .pipe(writeStream)
-
         .on('error', (err) => {
-          if (err.code === 'EEXIST') {
-            res.writeHead(409, err.message)
+          if (err.code === 'LIMIT_EXCEEDED') {
+            res.writeHead(413, err.message)
             res.end(err.message)
             return
           }
 
-          if (err.code === 'LIMIT_EXCEEDED') {
-            res.writeHead(413, err.message)
+          res.writeHead(500, err.message)
+          res.end(err.message)
+        })
+
+        .pipe(writeStream)
+        .on('error', (err) => {
+          if (err.code === 'EEXIST') {
+            res.writeHead(409, err.message)
             res.end(err.message)
             return
           }
@@ -49,8 +53,20 @@ server.on('request', (req, res) => {
           return
         })
 
-        .on('aborted', () => {
-          writeStream.destroy()
+        // .on('aborted', () => {
+        //   writeStream.destroy()
+        //
+        //   fs.unlink(filepath, (err) => {
+        //     if (err) {
+        //       console.error(err)
+        //       return
+        //     }
+        //   })
+        //
+        // })
+
+        .on('close', () => {
+          if (res.finished) return
 
           fs.unlink(filepath, (err) => {
             if (err) {
@@ -58,6 +74,8 @@ server.on('request', (req, res) => {
               return
             }
           })
+
+          req.destroy();
         })
 
       break;
