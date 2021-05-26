@@ -12,8 +12,8 @@ server.on('request', (req, res) => {
 
   switch (req.method) {
     case 'GET':
-      if (filepath.includes('/')) {
-        res.writeHead(400, 'Now allowed')
+      if (pathname.includes('/')) {
+        res.writeHead(400, 'Not allowed')
         res.end()
         return
       }
