@@ -26,8 +26,8 @@ server.on('request', (req, res) => {
         .pipe(limitSize)
         .on('error', (err) => {
           if (err.code === 'LIMIT_EXCEEDED') {
-            res.writeHead(413, err.message)
-            res.end(err.message)
+            res.statusCode = 413
+            res.end()
             return
           }
 
@@ -53,30 +53,16 @@ server.on('request', (req, res) => {
           return
         })
 
-        // .on('aborted', () => {
-        //   writeStream.destroy()
-        //
-        //   fs.unlink(filepath, (err) => {
-        //     if (err) {
-        //       console.error(err)
-        //       return
-        //     }
-        //   })
-        //
-        // })
+      writeStream.on('aborted', () => {
+        writeStream.destroy()
 
-        .on('close', () => {
-          if (res.finished) return
-
-          fs.unlink(filepath, (err) => {
-            if (err) {
-              console.error(err)
-              return
-            }
-          })
-
-          req.destroy();
+        fs.unlink(filepath, (err) => {
+          if (err) {
+            console.error(err)
+            return
+          }
         })
+      })
 
       break;
 
