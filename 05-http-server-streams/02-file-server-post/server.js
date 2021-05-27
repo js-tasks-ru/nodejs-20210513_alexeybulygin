@@ -27,7 +27,9 @@ server.on('request', (req, res) => {
         .on('error', (err) => {
           if (err.code === 'LIMIT_EXCEEDED') {
             res.statusCode = 413
+            res.setHeader('Connection', 'close');
             res.end()
+            fs.unlink(filepath, (err) => {});
             return
           }
 
