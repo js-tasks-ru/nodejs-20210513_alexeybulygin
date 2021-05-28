@@ -53,6 +53,11 @@ server.on('request', (req, res) => {
           res.writeHead(201)
           res.end()
         })
+        .on('close', () => {
+          if (res.finished) return;
+          res.statusCode = 201;
+          res.end();
+        });
 
       req.on('aborted', () => {
         fs.unlink(filepath, (err) => {})
