@@ -19,25 +19,26 @@ server.on('request', (req, res) => {
         return
       }
 
-      const limitSize = new LimitSizeStream({limit: 1048576})
+      const limitStream = new LimitSizeStream({limit: 1048576})
       const writeStream = fs.createWriteStream(filepath, {flags: 'wx'})
 
       req
-        .pipe(limitSize)
-        .on('error', (err) => {
-          if (err.code === 'LIMIT_EXCEEDED') {
-            fs.unlink(filepath, (err) => {})
-            res.statusCode = 413
-            // res.setHeader('Connection', 'close')
-            res.end(err.message)
-            return
-          }
-
-          res.writeHead(500, err.message)
-          res.end(err.message)
-        })
-
+        .pipe(limitStream)
         .pipe(writeStream)
+
+      limitStream.on('error', (err) => {
+        if (err.code === 'LIMIT_EXCEEDED') {
+          fs.unlink(filepath, (err) => {})
+          res.statusCode = 413
+          res.end(err.message)
+          return
+        }
+
+        res.writeHead(500, err.message)
+        res.end(err.message)
+      })
+
+      writeStream
         .on('error', (err) => {
           if (err.code === 'EEXIST') {
             res.writeHead(409, err.message)
@@ -48,14 +49,12 @@ server.on('request', (req, res) => {
           res.writeHead(500, err.message)
           res.end(err.message)
         })
-
         .on('finish', () => {
           res.writeHead(201)
           res.end()
-          return
         })
 
-      writeStream.on('aborted', () => {
+      req.on('aborted', () => {
         fs.unlink(filepath, (err) => {})
         writeStream.destroy()
       })
