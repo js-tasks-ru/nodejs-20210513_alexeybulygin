@@ -1,6 +1,8 @@
 const url = require('url');
 const http = require('http');
 const path = require('path');
+const fs = require('fs');
+const LimitSizeStream = require('./LimitSizeStream');
 
 const server = new http.Server();
 
@@ -11,6 +13,56 @@ server.on('request', (req, res) => {
 
   switch (req.method) {
     case 'POST':
+      if (pathname.includes('/')) {
+        res.writeHead(400, 'Not allowed')
+        res.end()
+        return
+      }
+
+      const limitStream = new LimitSizeStream({limit: 1048576})
+      const writeStream = fs.createWriteStream(filepath, {flags: 'wx'})
+
+      req
+        .pipe(limitStream)
+        .pipe(writeStream)
+
+      limitStream.on('error', (err) => {
+        if (err.code === 'LIMIT_EXCEEDED') {
+          fs.unlink(filepath, (err) => {})
+          res.statusCode = 413
+          res.end(err.message)
+          return
+        }
+
+        res.writeHead(500, err.message)
+        res.end(err.message)
+      })
+
+      writeStream
+        .on('error', (err) => {
+          if (err.code === 'EEXIST') {
+            res.writeHead(409, err.message)
+            res.end(err.message)
+            return
+          }
+
+          res.writeHead(500, err.message)
+          res.end(err.message)
+        })
+        .on('finish', () => {
+          res.writeHead(201)
+          res.end()
+        })
+        .on('close', () => {
+          if (res.finished) return;
+          res.statusCode = 201;
+          res.end();
+        });
+
+      req.on('aborted', () => {
+        fs.unlink(filepath, (err) => {})
+        writeStream.destroy()
+      })
 
       break;
 
