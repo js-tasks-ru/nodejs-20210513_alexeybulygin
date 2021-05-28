@@ -56,14 +56,8 @@ server.on('request', (req, res) => {
         })
 
       writeStream.on('aborted', () => {
+        fs.unlink(filepath, (err) => {})
         writeStream.destroy()
-
-        fs.unlink(filepath, (err) => {
-          if (err) {
-            console.error(err)
-            return
-          }
-        })
       })
 
       break;
