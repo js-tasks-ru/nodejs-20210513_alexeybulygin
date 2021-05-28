@@ -26,10 +26,10 @@ server.on('request', (req, res) => {
         .pipe(limitSize)
         .on('error', (err) => {
           if (err.code === 'LIMIT_EXCEEDED') {
+            fs.unlink(filepath, (err) => {})
             res.statusCode = 413
-            res.setHeader('Connection', 'close');
-            res.end()
-            fs.unlink(filepath, (err) => {});
+            // res.setHeader('Connection', 'close')
+            res.end(err.message)
             return
           }
 
